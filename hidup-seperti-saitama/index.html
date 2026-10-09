@@ -22,18 +22,18 @@
                 </div>
 
                 <form id="login-form" class="auth-form active">
-                    <label>Username</label>
-                    <input type="text" id="login-username" placeholder="Enter username" autocomplete="off">
+                    <label>Email</label>
+                    <input type="email" id="login-email" placeholder="Enter email" autocomplete="off">
                     <label>Password</label>
                     <input type="password" id="login-password" placeholder="Enter password">
                     <button type="submit" class="btn-primary">Login</button>
                 </form>
 
                 <form id="register-form" class="auth-form">
-                    <label>Username</label>
-                    <input type="text" id="reg-username" placeholder="Enter username" autocomplete="off">
+                    <label>Email</label>
+                    <input type="email" id="reg-email" placeholder="Enter email" autocomplete="off">
                     <label>Password</label>
-                    <input type="password" id="reg-password" placeholder="Enter password">
+                    <input type="password" id="reg-password" placeholder="Enter password (min 6 chars)">
                     <label>Confirm Password</label>
                     <input type="password" id="reg-confirm" placeholder="Confirm password">
                     <button type="submit" class="btn-primary">Register</button>
@@ -163,7 +163,6 @@
                 <button id="action-leave" class="btn-danger">Leave Battle</button>
             </div>
 
-            <!-- Skill Selection Panel -->
             <div id="skill-panel" class="skill-panel hidden">
                 <h3>Choose a Skill</h3>
                 <div id="skill-options" class="skill-options"></div>
@@ -228,9 +227,6 @@
         </div>
     </div>
 
-    <script src="js/database.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/main.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>

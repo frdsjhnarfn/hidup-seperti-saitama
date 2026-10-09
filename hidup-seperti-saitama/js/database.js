@@ -1,89 +1,40 @@
-/* ============================================================
-   Local Database Layer (localStorage)
-   Dengan "lapisan keamanan": hashing sederhana + salt
-   ============================================================ */
+// js/database.js
+import { db } from './firebase-config.js';
+import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const DB = {
-    USERS_KEY: 'hss_users',
-    SESSION_KEY: 'hss_session',
-    SAVE_KEY: 'hss_save_',
-
-    /* ---------- Simple Hash (bukan kriptografi kuat, hanya obfuscation) ---------- */
-    hash(str) {
-        let h = 0;
-        const salt = 'saitama_';
-        const s = salt + str + salt;
-        for (let i = 0; i < s.length; i++) {
-            h = ((h << 5) - h) + s.charCodeAt(i);
-            h |= 0;
-        }
-        return 'h' + Math.abs(h).toString(36);
-    },
-
-    /* ---------- Users ---------- */
-    getUsers() {
+    /* ---------- Save Game Data to Firestore ---------- */
+    async saveGame(uid, data) {
         try {
-            return JSON.parse(localStorage.getItem(this.USERS_KEY)) || {};
-        } catch { return {}; }
-    },
-
-    saveUsers(users) {
-        localStorage.setItem(this.USERS_KEY, JSON.stringify(users));
-    },
-
-    register(username, password) {
-        const users = this.getUsers();
-        const key = username.toLowerCase();
-        if (users[key]) {
-            return { ok: false, msg: 'Username already taken.' };
+            const userDoc = doc(db, "saves", uid);
+            await setDoc(userDoc, data, { merge: true });
+            console.log("Game saved to Firestore");
+        } catch (error) {
+            console.error("Error saving to Firestore: ", error);
+            // Fallback: simpan ke localStorage
+            localStorage.setItem('hss_save_' + uid, JSON.stringify(data));
         }
-        if (username.length < 3) {
-            return { ok: false, msg: 'Username must be at least 3 characters.' };
-        }
-        if (password.length < 4) {
-            return { ok: false, msg: 'Password must be at least 4 characters.' };
-        }
-        users[key] = {
-            username,
-            passwordHash: this.hash(password),
-            createdAt: Date.now()
-        };
-        this.saveUsers(users);
-        return { ok: true };
     },
 
-    login(username, password) {
-        const users = this.getUsers();
-        const key = username.toLowerCase();
-        const user = users[key];
-        if (!user) return { ok: false, msg: 'User not found.' };
-        if (user.passwordHash !== this.hash(password)) {
-            return { ok: false, msg: 'Wrong password.' };
-        }
-        return { ok: true, username: user.username };
-    },
-
-    /* ---------- Session ---------- */
-    setSession(username) {
-        localStorage.setItem(this.SESSION_KEY, username);
-    },
-    getSession() {
-        return localStorage.getItem(this.SESSION_KEY);
-    },
-    clearSession() {
-        localStorage.removeItem(this.SESSION_KEY);
-    },
-
-    /* ---------- Save Game ---------- */
-    saveGame(username, data) {
-        localStorage.setItem(this.SAVE_KEY + username.toLowerCase(), JSON.stringify(data));
-    },
-    loadGame(username) {
+    /* ---------- Load Game Data from Firestore ---------- */
+    async loadGame(uid) {
         try {
-            return JSON.parse(localStorage.getItem(this.SAVE_KEY + username.toLowerCase()));
-        } catch { return null; }
-    },
-    deleteSave(username) {
-        localStorage.removeItem(this.SAVE_KEY + username.toLowerCase());
+            const userDoc = doc(db, "saves", uid);
+            const docSnap = await getDoc(userDoc);
+            if (docSnap.exists()) {
+                console.log("Game loaded from Firestore");
+                return docSnap.data();
+            } else {
+                console.log("No game data found in Firestore");
+                const localData = localStorage.getItem('hss_save_' + uid);
+                return localData ? JSON.parse(localData) : null;
+            }
+        } catch (error) {
+            console.error("Error loading from Firestore: ", error);
+            const localData = localStorage.getItem('hss_save_' + uid);
+            return localData ? JSON.parse(localData) : null;
+        }
     }
 };
+
+export { DB };

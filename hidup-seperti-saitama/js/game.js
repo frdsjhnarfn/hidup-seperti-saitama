@@ -2,6 +2,9 @@
    Core Game Logic - With Job & Skill System + Attack Speed
    ============================================================ */
 
+import { DB } from './database.js';
+import { Auth } from './auth.js';
+
 const TIERS = ['White', 'Green', 'Blue', 'Purple', 'Red', 'Gold'];
 const TIER_MULT = { White: 1, Green: 1.5, Blue: 2.25, Purple: 3.375, Red: 5.0625, Gold: 7.59375 };
 const ENHANCE_COST = { White: 100, Green: 250, Blue: 500, Purple: 1000, Red: 2500 };
@@ -26,26 +29,10 @@ const JOB_BONUS = {
 };
 
 const ATTR_SCALING = {
-    Novice: {
-        hpPerStr: 2, mpPerInt: 3,
-        meleePctPerStr: 0.10, rangePctPerAgi: 0.15, magicPctPerInt: 0.15,
-        atkSpdPctPerAgi: 0.20
-    },
-    Warrior: {
-        hpPerStr: 3, mpPerInt: 2,
-        meleePctPerStr: 0.15, rangePctPerAgi: 0, magicPctPerInt: 0,
-        atkSpdPctPerAgi: 0.10
-    },
-    Archer: {
-        hpPerStr: 2, mpPerInt: 2,
-        meleePctPerStr: 0, rangePctPerAgi: 0.15, magicPctPerInt: 0,
-        atkSpdPctPerAgi: 0.20
-    },
-    Mage: {
-        hpPerStr: 2, mpPerInt: 3,
-        meleePctPerStr: 0, rangePctPerAgi: 0, magicPctPerInt: 0.15,
-        atkSpdPctPerAgi: 0.15
-    }
+    Novice:  { hpPerStr: 2, mpPerInt: 3, meleePctPerStr: 0.10, rangePctPerAgi: 0.15, magicPctPerInt: 0.15, atkSpdPctPerAgi: 0.20 },
+    Warrior: { hpPerStr: 3, mpPerInt: 2, meleePctPerStr: 0.15, rangePctPerAgi: 0,    magicPctPerInt: 0,    atkSpdPctPerAgi: 0.10 },
+    Archer:  { hpPerStr: 2, mpPerInt: 2, meleePctPerStr: 0,    rangePctPerAgi: 0.15, magicPctPerInt: 0,    atkSpdPctPerAgi: 0.20 },
+    Mage:    { hpPerStr: 2, mpPerInt: 3, meleePctPerStr: 0,    rangePctPerAgi: 0,    magicPctPerInt: 0.15, atkSpdPctPerAgi: 0.15 }
 };
 
 const SKILLS = {
@@ -92,7 +79,7 @@ const Game = {
     },
 
     /* ---------- Hero Creation ---------- */
-    createHero(name, username, isGuest) {
+    async createHero(name, username, isGuest) {
         this.username = username;
         this.isGuest = isGuest;
         this.hero = {
@@ -117,7 +104,7 @@ const Game = {
         const knife = this.generateItem('White', 'Knife');
         this.equippedItem = knife;
 
-        this.save();
+        await this.save();
         this.render();
     },
 
@@ -233,7 +220,7 @@ const Game = {
         return { leveled, reachedJobChoice };
     },
 
-    chooseJob(jobName) {
+    async chooseJob(jobName) {
         if (!JOB_BONUS[jobName]) return;
         if (this.hero.job) return;
 
@@ -252,29 +239,37 @@ const Game = {
         this.hero.mp = this.hero.maxMp;
 
         this.pendingJobChoice = false;
-        this.save();
+        await this.save();
         this.render();
     },
 
     /* ---------- Save / Load ---------- */
-    save() {
-        if (this.isGuest || !this.username) return;
-        DB.saveGame(this.username, {
+    async save() {
+        if (!this.username) return;
+        const dataToSave = {
             hero: this.hero,
             inventory: this.inventory,
             iron: this.iron,
-            equippedItem: this.equippedItem
-        });
+            equippedItem: this.equippedItem,
+            savedAt: Date.now()
+        };
+        try {
+            await DB.saveGame(this.username, dataToSave);
+        } catch (error) {
+            console.error('Save failed:', error);
+        }
     },
 
-    load(data) {
+    async load(data) {
         this.username = Auth.currentUser;
         this.isGuest = Auth.isGuest;
+
         this.hero = data.hero;
         this.inventory = data.inventory || [];
         this.iron = data.iron || 0;
         this.equippedItem = data.equippedItem || null;
 
+        // Migrasi data lama
         if (this.hero.statPoints === undefined) this.hero.statPoints = (this.hero.level - 1) * 3;
         if (this.hero.bonusHp === undefined) this.hero.bonusHp = 0;
         if (this.hero.bonusMp === undefined) this.hero.bonusMp = 0;
@@ -289,6 +284,8 @@ const Game = {
         this.iron = 0;
         this.equippedItem = null;
         this.battle = null;
+        this.username = null;
+        this.isGuest = false;
     },
 
     /* ---------- Rendering ---------- */
@@ -415,7 +412,7 @@ const Game = {
         document.getElementById('item-action-panel').classList.add('hidden');
     },
 
-    equipItem(index) {
+    async equipItem(index) {
         const item = this.inventory[index];
         if (!item) return;
 
@@ -433,10 +430,10 @@ const Game = {
         this.closeItemPanel();
         this.render();
         this.renderInventory();
-        this.save();
+        await this.save();
     },
 
-    unequipItem() {
+    async unequipItem() {
         if (!this.equippedItem) return;
         if (this.inventory.length >= this.inventorySlots) {
             alert('Inventory is full! Discard or dismantle an item first.');
@@ -446,10 +443,10 @@ const Game = {
         this.equippedItem = null;
         this.render();
         this.renderInventory();
-        this.save();
+        await this.save();
     },
 
-    allocateStat(stat) {
+    async allocateStat(stat) {
         if (!this.hero) return;
         if (this.hero.statPoints <= 0) {
             alert('No stat points available!');
@@ -473,10 +470,10 @@ const Game = {
         }
 
         this.render();
-        this.save();
+        await this.save();
     },
 
-    enhanceItem(index) {
+    async enhanceItem(index) {
         const item = this.inventory[index];
         if (!item) return;
         const cost = ENHANCE_COST[item.tier];
@@ -495,11 +492,11 @@ const Game = {
         this.closeItemPanel();
         this.render();
         this.renderInventory();
-        this.save();
+        await this.save();
         alert(`Enhanced to ${newTier}!`);
     },
 
-    dismantleItem(index) {
+    async dismantleItem(index) {
         const item = this.inventory[index];
         if (!item) return;
         if (item.tier === 'Gold') return alert('Gold items cannot be dismantled.');
@@ -509,27 +506,23 @@ const Game = {
         this.closeItemPanel();
         this.render();
         this.renderInventory();
-        this.save();
+        await this.save();
         alert(`Dismantled! +${yieldIron} Iron.`);
     },
 
-    discardItem(index) {
+    async discardItem(index) {
         if (!confirm('Discard this item permanently?')) return;
         this.inventory.splice(index, 1);
         this.closeItemPanel();
         this.renderInventory();
-        this.save();
+        await this.save();
     },
 
     /* ============================================================
        BATTLE WITH ATTACK SPEED
        ============================================================ */
 
-    /**
-     * Hitung berapa kali hero & enemy menyerang dalam 1 ronde.
-     * Rumus: bandingkan speed relatif terhadap yang lebih lambat.
-     */
-        computeAttacksPerRound() {
+    computeAttacksPerRound() {
         const b = this.battle;
         const heroSpd = this.getAttackSpeed();
         const enemySpd = b.monsterData.atkSpd;
@@ -537,10 +530,6 @@ const Game = {
         const faster = Math.max(heroSpd, enemySpd);
         const slower = Math.min(heroSpd, enemySpd);
 
-        // Fair rounding: selalu ke bawah (floor)
-        // Contoh: hero 22, enemy 8 → ratio 2.75 → 2 attack per ronde
-        // Contoh: hero 24, enemy 8 → ratio 3.00 → 3 attack per ronde
-        // Minimum 1 attack per ronde untuk kedua pihak
         const ratio = faster / slower;
         const fasterAttacks = Math.max(1, Math.floor(ratio));
 
@@ -564,14 +553,12 @@ const Game = {
             heroStunned: false,
             monsterSlowed: 0,
             over: false,
-            // Attack speed tracking
             round: 1,
             heroAttacksLeft: 0,
             enemyAttacksLeft: 0,
             waitingForNextRound: false
         };
 
-        // Hitung attack per ronde
         const counts = this.computeAttacksPerRound();
         this.battle.heroAttacksLeft = counts.heroAttacks;
         this.battle.enemyAttacksLeft = counts.enemyAttacks;
@@ -626,16 +613,10 @@ const Game = {
         });
     },
 
-    /**
-     * Dipanggil setelah hero attack.
-     * Cek apakah hero masih punya attack sisa di ronde ini.
-     * Kalau habis → enemy turn (kecuali enemy masih ada sisa? tidak, enemy langsung main semua).
-     */
     proceedAfterHeroAction() {
         const b = this.battle;
         if (!b || b.over) return;
 
-        // Cek monster mati
         if (b.monsterHp <= 0) {
             b.monsterHp = 0;
             this.updateBattleUI();
@@ -646,25 +627,19 @@ const Game = {
         b.heroAttacksLeft--;
 
         if (b.heroAttacksLeft > 0) {
-            // Masih ada attack sisa di ronde ini
             this.log(`⚡ Extra attack! (${b.heroAttacksLeft} left this round)`, 'hero');
             this.enableActions(true);
             return;
         }
 
-        // Hero selesai untuk ronde ini → enemy turn
         b.enemyAttacksLeft = b.enemyAttacksLeft > 0 ? b.enemyAttacksLeft : this.computeAttacksPerRound().enemyAttacks;
         setTimeout(() => this.enemyTurnLoop(), 500);
     },
 
-    /**
-     * Enemy turn loop — musuh menyerang sebanyak `enemyAttacksLeft`.
-     */
     enemyTurnLoop() {
         const b = this.battle;
         if (!b || b.over) return;
 
-        // Cek stun hero (dari skill monster sebelumnya)
         if (b.heroStunned) {
             this.log(`${this.hero.name} is stunned and cannot act!`, 'info');
             b.heroStunned = false;
@@ -678,7 +653,6 @@ const Game = {
             return;
         }
 
-        // Slow effect: 30% chance skip attack
         if (b.monsterSlowed > 0) {
             b.monsterSlowed--;
             if (Math.random() < 0.30) {
@@ -706,9 +680,6 @@ const Game = {
         }
     },
 
-    /**
-     * Satu serangan musuh (dengan kemungkinan skill).
-     */
     enemySingleAttack() {
         const b = this.battle;
         const data = b.monsterData;
@@ -761,9 +732,6 @@ const Game = {
         }
     },
 
-    /**
-     * Akhir ronde — reset attack counter, mulai ronde baru.
-     */
     endRound() {
         const b = this.battle;
         if (!b || b.over) return;
@@ -778,7 +746,6 @@ const Game = {
     },
 
     /* ---------- Hero Actions ---------- */
-
     heroAttack() {
         if (!this.battle || this.battle.over) return;
         this.enableActions(false);
@@ -893,18 +860,8 @@ const Game = {
         this.proceedAfterHeroAction();
     },
 
-    /**
-     * Dipakai oleh Skill dari enemy kalau ada — sekarang jadi tidak terpakai
-     * karena enemy single attack sudah handle. Biarkan untuk backward compat.
-     */
-    enemyTurn() {
-        const b = this.battle;
-        if (!b || b.over) return;
-        this.enemyTurnLoop();
-    },
-
     /* ---------- Battle End ---------- */
-    endBattle(win) {
+    async endBattle(win) {
         const b = this.battle;
         b.over = true;
         this.enableActions(false);
@@ -941,7 +898,7 @@ const Game = {
             this.hero.mp = this.getMaxMp();
         }
 
-        this.save();
+        await this.save();
         this.render();
 
         setTimeout(() => {
@@ -1004,3 +961,5 @@ const Game = {
         this.exitBattle();
     }
 };
+
+export { Game };

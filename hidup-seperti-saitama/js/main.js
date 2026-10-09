@@ -2,6 +2,9 @@
    Main Entry Point & Navigation
    ============================================================ */
 
+import { Auth } from './auth.js';
+import { Game } from './game.js';
+
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById(pageId).classList.add('active');
@@ -19,12 +22,14 @@ function showPage(pageId) {
     }
 }
 
+// Expose showPage ke global untuk dipakai auth.js
+window.showPage = showPage;
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Init auth
     Auth.init();
     Auth.initHeroName();
 
-    // Stat allocation buttons
+    // Stat allocation
     document.querySelectorAll('.stat-plus-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             Game.allocateStat(btn.dataset.stat);
@@ -41,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ✅ Battle actions pakai EVENT DELEGATION (tidak perlu re-bind)
+    // Battle actions (event delegation)
     document.getElementById('battle-actions').addEventListener('click', (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
@@ -112,25 +117,4 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`You are now a ${job}! New skills unlocked.`);
         });
     });
-
-    // Auto-login check
-    const session = DB.getSession();
-    if (session) {
-        const user = DB.getUsers()[session.toLowerCase()];
-        if (user) {
-            Auth.currentUser = user.username;
-            Auth.isGuest = false;
-            const save = DB.loadGame(user.username);
-            if (save && save.hero) {
-                Game.load(save);
-                showPage('page-profile');
-            } else {
-                showPage('page-hero-name');
-            }
-        }
-    }
 });
-
-window.Game = Game;
-window.Auth = Auth;
-window.showPage = showPage;
