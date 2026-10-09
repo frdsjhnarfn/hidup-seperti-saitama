@@ -1,6 +1,5 @@
 /* ============================================================
-   Core Game Logic - With Job & Skill System
-   Job-specific attribute scaling implemented
+   Core Game Logic - With Job & Skill System + Attack Speed
    ============================================================ */
 
 const TIERS = ['White', 'Green', 'Blue', 'Purple', 'Red', 'Gold'];
@@ -26,50 +25,26 @@ const JOB_BONUS = {
     Mage:    { str: 1, agi: 1, int: 5, hp: 0,  mp: 10 }
 };
 
-/* ============================================================
-   ATTRIBUTE SCALING PER JOB
-   Setiap job punya rumus berbeda per 1 point STR/AGI/INT.
-   Format:
-     hpPerStr      = HP bertambah per 1 STR
-     mpPerInt      = MP bertambah per 1 INT
-     meleePctPerStr  = bonus % melee damage per 1 STR (0.10 = 10%)
-     rangePctPerAgi  = bonus % range damage per 1 AGI
-     magicPctPerInt  = bonus % magic damage per 1 INT
-     atkSpdPctPerAgi = bonus % attack speed per 1 AGI
-   ============================================================ */
 const ATTR_SCALING = {
-    // Default untuk Novice (sebelum pilih job)
     Novice: {
-        hpPerStr: 2,
-        mpPerInt: 3,
-        meleePctPerStr: 0.10,
-        rangePctPerAgi: 0.15,
-        magicPctPerInt: 0.15,
+        hpPerStr: 2, mpPerInt: 3,
+        meleePctPerStr: 0.10, rangePctPerAgi: 0.15, magicPctPerInt: 0.15,
         atkSpdPctPerAgi: 0.20
     },
     Warrior: {
-        hpPerStr: 3,
-        mpPerInt: 2,
-        meleePctPerStr: 0.15,
-        rangePctPerAgi: 0,       // Warrior tidak dapat bonus range damage dari AGI
-        magicPctPerInt: 0,       // Warrior tidak dapat bonus magic damage dari INT
-        atkSpdPctPerAgi: 0.10    // Warrior hanya +10% attack speed per AGI
+        hpPerStr: 3, mpPerInt: 2,
+        meleePctPerStr: 0.15, rangePctPerAgi: 0, magicPctPerInt: 0,
+        atkSpdPctPerAgi: 0.10
     },
     Archer: {
-        hpPerStr: 2,
-        mpPerInt: 2,
-        meleePctPerStr: 0,       // Archer tidak dapat bonus melee damage dari STR
-        rangePctPerAgi: 0.15,
-        magicPctPerInt: 0,       // Archer tidak dapat bonus magic damage dari INT
+        hpPerStr: 2, mpPerInt: 2,
+        meleePctPerStr: 0, rangePctPerAgi: 0.15, magicPctPerInt: 0,
         atkSpdPctPerAgi: 0.20
     },
     Mage: {
-        hpPerStr: 2,
-        mpPerInt: 3,
-        meleePctPerStr: 0,       // Mage tidak dapat bonus melee damage dari STR
-        rangePctPerAgi: 0,       // Mage tidak dapat bonus range damage dari AGI
-        magicPctPerInt: 0.15,
-        atkSpdPctPerAgi: 0.15    // Mage hanya +15% attack speed per AGI
+        hpPerStr: 2, mpPerInt: 3,
+        meleePctPerStr: 0, rangePctPerAgi: 0, magicPctPerInt: 0.15,
+        atkSpdPctPerAgi: 0.15
     }
 };
 
@@ -110,9 +85,8 @@ const Game = {
     isGuest: false,
     pendingJobChoice: false,
 
-    /* ---------- Get Current Scaling ---------- */
+    /* ---------- Scaling ---------- */
     getScaling() {
-        // Novice (belum pilih job) → pakai scaling Novice
         if (!this.hero || !this.hero.job) return ATTR_SCALING.Novice;
         return ATTR_SCALING[this.hero.job] || ATTR_SCALING.Novice;
     },
@@ -172,12 +146,10 @@ const Game = {
     /* ---------- Stats Calculation ---------- */
     getTotalAttack() {
         const s = this.getScaling();
-
         let melee = this.hero.baseAtk;
         let range = this.hero.baseAtk;
         let magic = this.hero.baseAtk;
 
-        // Apply scaling per stat
         melee += melee * (this.hero.str * s.meleePctPerStr);
         range += range * (this.hero.agi * s.rangePctPerAgi);
         magic += magic * (this.hero.int * s.magicPctPerInt);
@@ -209,7 +181,7 @@ const Game = {
         return 10 + (this.hero.bonusMp || 0) + (this.hero.int * s.mpPerInt);
     },
 
-    /* ---------- Available Skills ---------- */
+    /* ---------- Skills ---------- */
     getAvailableSkills() {
         const list = [];
         for (const [id, skill] of Object.entries(SKILLS)) {
@@ -232,7 +204,7 @@ const Game = {
         return false;
     },
 
-    /* ---------- Experience / Level Up ---------- */
+    /* ---------- EXP / Level ---------- */
     gainExp(amount) {
         this.hero.exp += amount;
         let leveled = false;
@@ -261,7 +233,6 @@ const Game = {
         return { leveled, reachedJobChoice };
     },
 
-    /* ---------- Job Selection ---------- */
     chooseJob(jobName) {
         if (!JOB_BONUS[jobName]) return;
         if (this.hero.job) return;
@@ -275,7 +246,6 @@ const Game = {
         this.hero.bonusHp = (this.hero.bonusHp || 0) + bonus.hp;
         this.hero.bonusMp = (this.hero.bonusMp || 0) + bonus.mp;
 
-        // Recalc HP/MP dengan scaling job baru
         this.hero.maxHp = this.getMaxHp();
         this.hero.maxMp = this.getMaxMp();
         this.hero.hp = this.hero.maxHp;
@@ -489,11 +459,9 @@ const Game = {
         if (!validStats.includes(stat)) return;
 
         const scaling = this.getScaling();
-
         this.hero.statPoints--;
         this.hero[stat]++;
 
-        // Apply immediate HP/MP gain based on job scaling
         if (stat === 'str') {
             this.hero.maxHp = this.getMaxHp();
             this.hero.hp += scaling.hpPerStr;
@@ -553,7 +521,36 @@ const Game = {
         this.save();
     },
 
-    /* ---------- Battle ---------- */
+    /* ============================================================
+       BATTLE WITH ATTACK SPEED
+       ============================================================ */
+
+    /**
+     * Hitung berapa kali hero & enemy menyerang dalam 1 ronde.
+     * Rumus: bandingkan speed relatif terhadap yang lebih lambat.
+     */
+        computeAttacksPerRound() {
+        const b = this.battle;
+        const heroSpd = this.getAttackSpeed();
+        const enemySpd = b.monsterData.atkSpd;
+
+        const faster = Math.max(heroSpd, enemySpd);
+        const slower = Math.min(heroSpd, enemySpd);
+
+        // Fair rounding: selalu ke bawah (floor)
+        // Contoh: hero 22, enemy 8 → ratio 2.75 → 2 attack per ronde
+        // Contoh: hero 24, enemy 8 → ratio 3.00 → 3 attack per ronde
+        // Minimum 1 attack per ronde untuk kedua pihak
+        const ratio = faster / slower;
+        const fasterAttacks = Math.max(1, Math.floor(ratio));
+
+        if (heroSpd >= enemySpd) {
+            return { heroAttacks: fasterAttacks, enemyAttacks: 1 };
+        } else {
+            return { heroAttacks: 1, enemyAttacks: fasterAttacks };
+        }
+    },
+
     startBattle(monsterName) {
         const data = MONSTERS[monsterName];
         if (!data) return;
@@ -566,8 +563,18 @@ const Game = {
             monsterMp: data.mp,
             heroStunned: false,
             monsterSlowed: 0,
-            over: false
+            over: false,
+            // Attack speed tracking
+            round: 1,
+            heroAttacksLeft: 0,
+            enemyAttacksLeft: 0,
+            waitingForNextRound: false
         };
+
+        // Hitung attack per ronde
+        const counts = this.computeAttacksPerRound();
+        this.battle.heroAttacksLeft = counts.heroAttacks;
+        this.battle.enemyAttacksLeft = counts.enemyAttacks;
 
         document.getElementById('enemy-select').classList.add('hidden');
         document.getElementById('battle-screen').classList.remove('hidden');
@@ -575,6 +582,9 @@ const Game = {
         document.getElementById('battle-hero-name').textContent = this.hero.name;
         document.getElementById('battle-enemy-name').textContent = monsterName;
         this.log(`A wild ${monsterName} appears!`, 'info');
+        this.log(`— Round ${this.battle.round} —`, 'info');
+        this.log(`Attack Speed: You ${this.getAttackSpeed()} vs ${data.atkSpd}`, 'info');
+        this.log(`You attack ${counts.heroAttacks}× per round, ${monsterName} attacks ${counts.enemyAttacks}×`, 'info');
         this.updateBattleUI();
         this.enableActions(true);
         document.getElementById('skill-panel').classList.add('hidden');
@@ -616,6 +626,159 @@ const Game = {
         });
     },
 
+    /**
+     * Dipanggil setelah hero attack.
+     * Cek apakah hero masih punya attack sisa di ronde ini.
+     * Kalau habis → enemy turn (kecuali enemy masih ada sisa? tidak, enemy langsung main semua).
+     */
+    proceedAfterHeroAction() {
+        const b = this.battle;
+        if (!b || b.over) return;
+
+        // Cek monster mati
+        if (b.monsterHp <= 0) {
+            b.monsterHp = 0;
+            this.updateBattleUI();
+            this.endBattle(true);
+            return;
+        }
+
+        b.heroAttacksLeft--;
+
+        if (b.heroAttacksLeft > 0) {
+            // Masih ada attack sisa di ronde ini
+            this.log(`⚡ Extra attack! (${b.heroAttacksLeft} left this round)`, 'hero');
+            this.enableActions(true);
+            return;
+        }
+
+        // Hero selesai untuk ronde ini → enemy turn
+        b.enemyAttacksLeft = b.enemyAttacksLeft > 0 ? b.enemyAttacksLeft : this.computeAttacksPerRound().enemyAttacks;
+        setTimeout(() => this.enemyTurnLoop(), 500);
+    },
+
+    /**
+     * Enemy turn loop — musuh menyerang sebanyak `enemyAttacksLeft`.
+     */
+    enemyTurnLoop() {
+        const b = this.battle;
+        if (!b || b.over) return;
+
+        // Cek stun hero (dari skill monster sebelumnya)
+        if (b.heroStunned) {
+            this.log(`${this.hero.name} is stunned and cannot act!`, 'info');
+            b.heroStunned = false;
+            this.updateBattleUI();
+            this.endRound();
+            return;
+        }
+
+        if (b.enemyAttacksLeft <= 0) {
+            this.endRound();
+            return;
+        }
+
+        // Slow effect: 30% chance skip attack
+        if (b.monsterSlowed > 0) {
+            b.monsterSlowed--;
+            if (Math.random() < 0.30) {
+                this.log(`${b.monster} is slowed and skips its attack!`, 'info');
+                this.updateBattleUI();
+                b.enemyAttacksLeft--;
+                if (b.enemyAttacksLeft > 0) {
+                    setTimeout(() => this.enemyTurnLoop(), 500);
+                } else {
+                    this.endRound();
+                }
+                return;
+            }
+        }
+
+        this.enemySingleAttack();
+
+        if (b.over) return;
+
+        b.enemyAttacksLeft--;
+        if (b.enemyAttacksLeft > 0) {
+            setTimeout(() => this.enemyTurnLoop(), 600);
+        } else {
+            this.endRound();
+        }
+    },
+
+    /**
+     * Satu serangan musuh (dengan kemungkinan skill).
+     */
+    enemySingleAttack() {
+        const b = this.battle;
+        const data = b.monsterData;
+
+        let useSkill = null;
+        if (data.skills.length > 0 && Math.random() < 0.30) {
+            const affordable = data.skills.filter(s => b.monsterMp >= s.mp);
+            if (affordable.length > 0) {
+                useSkill = affordable[Math.floor(Math.random() * affordable.length)];
+            }
+        }
+
+        const baseDmg = Math.floor(Math.random() * (data.atkMax - data.atkMin + 1)) + data.atkMin;
+        let dmg;
+
+        if (useSkill && useSkill.stun) {
+            b.monsterMp -= useSkill.mp;
+            this.log(`${b.monster} uses ${useSkill.name}!`, 'enemy');
+            if (Math.random() < 0.20) {
+                this.log(`... but it MISSES!`, 'enemy');
+            } else {
+                b.heroStunned = true;
+                this.log(`${this.hero.name} is stunned for 1 turn!`, 'enemy');
+            }
+            this.updateBattleUI();
+            return;
+        }
+
+        if (useSkill) {
+            b.monsterMp -= useSkill.mp;
+            dmg = Math.round(baseDmg * useSkill.mult);
+            this.log(`${b.monster} uses ${useSkill.name}!`, 'enemy');
+        } else {
+            dmg = baseDmg;
+            this.log(`${b.monster} attacks!`, 'enemy');
+        }
+
+        if (Math.random() < 0.20) {
+            this.log(`... but it MISSES!`, 'enemy');
+        } else {
+            this.hero.hp -= dmg;
+            this.log(`${b.monster} deals ${dmg} damage!`, 'enemy');
+            if (this.hero.hp < 0) this.hero.hp = 0;
+        }
+        this.updateBattleUI();
+
+        if (this.hero.hp <= 0) {
+            this.hero.hp = 0;
+            this.endBattle(false);
+        }
+    },
+
+    /**
+     * Akhir ronde — reset attack counter, mulai ronde baru.
+     */
+    endRound() {
+        const b = this.battle;
+        if (!b || b.over) return;
+
+        b.round++;
+        const counts = this.computeAttacksPerRound();
+        b.heroAttacksLeft = counts.heroAttacks;
+        b.enemyAttacksLeft = counts.enemyAttacks;
+
+        this.log(`— Round ${b.round} —`, 'info');
+        this.enableActions(true);
+    },
+
+    /* ---------- Hero Actions ---------- */
+
     heroAttack() {
         if (!this.battle || this.battle.over) return;
         this.enableActions(false);
@@ -642,7 +805,7 @@ const Game = {
             this.endBattle(true);
             return;
         }
-        setTimeout(() => this.enemyTurn(), 600);
+        this.proceedAfterHeroAction();
     },
 
     openSkillPanel() {
@@ -727,84 +890,20 @@ const Game = {
             this.endBattle(true);
             return;
         }
-        setTimeout(() => this.enemyTurn(), 600);
+        this.proceedAfterHeroAction();
     },
 
+    /**
+     * Dipakai oleh Skill dari enemy kalau ada — sekarang jadi tidak terpakai
+     * karena enemy single attack sudah handle. Biarkan untuk backward compat.
+     */
     enemyTurn() {
-        if (!this.battle || this.battle.over) return;
         const b = this.battle;
-
-        if (b.heroStunned) {
-            this.log(`${this.hero.name} is stunned and cannot act!`, 'info');
-            b.heroStunned = false;
-            this.updateBattleUI();
-            this.enableActions(true);
-            return;
-        }
-
-        const data = b.monsterData;
-
-        let useSkill = null;
-        if (data.skills.length > 0 && Math.random() < 0.30) {
-            const affordable = data.skills.filter(s => b.monsterMp >= s.mp);
-            if (affordable.length > 0) {
-                useSkill = affordable[Math.floor(Math.random() * affordable.length)];
-            }
-        }
-
-        let dmg;
-        const baseDmg = Math.floor(Math.random() * (data.atkMax - data.atkMin + 1)) + data.atkMin;
-
-        if (b.monsterSlowed > 0) {
-            b.monsterSlowed--;
-            if (Math.random() < 0.30) {
-                this.log(`${b.monster} is slowed and skips its turn!`, 'info');
-                this.updateBattleUI();
-                this.enableActions(true);
-                return;
-            }
-        }
-
-        if (useSkill && useSkill.stun) {
-            b.monsterMp -= useSkill.mp;
-            this.log(`${b.monster} uses ${useSkill.name}!`, 'enemy');
-            if (Math.random() < 0.20) {
-                this.log(`... but it MISSES!`, 'enemy');
-            } else {
-                b.heroStunned = true;
-                this.log(`${this.hero.name} is stunned for 1 turn!`, 'enemy');
-            }
-            this.updateBattleUI();
-            this.enableActions(true);
-            return;
-        }
-
-        if (useSkill) {
-            b.monsterMp -= useSkill.mp;
-            dmg = Math.round(baseDmg * useSkill.mult);
-            this.log(`${b.monster} uses ${useSkill.name}!`, 'enemy');
-        } else {
-            dmg = baseDmg;
-            this.log(`${b.monster} attacks!`, 'enemy');
-        }
-
-        if (Math.random() < 0.20) {
-            this.log(`... but it MISSES!`, 'enemy');
-        } else {
-            this.hero.hp -= dmg;
-            this.log(`${b.monster} deals ${dmg} damage!`, 'enemy');
-            if (this.hero.hp < 0) this.hero.hp = 0;
-        }
-        this.updateBattleUI();
-
-        if (this.hero.hp <= 0) {
-            this.hero.hp = 0;
-            this.endBattle(false);
-            return;
-        }
-        this.enableActions(true);
+        if (!b || b.over) return;
+        this.enemyTurnLoop();
     },
 
+    /* ---------- Battle End ---------- */
     endBattle(win) {
         const b = this.battle;
         b.over = true;
