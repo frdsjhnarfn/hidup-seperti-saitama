@@ -101,20 +101,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // Unequip
     document.getElementById('unequip-btn').addEventListener('click', () => Game.unequipItem());
 
-    // Job selection
-    document.querySelectorAll('.job-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const job = card.dataset.job;
-            if (!confirm(`Choose ${job} as your job? This cannot be changed.`)) return;
-            Game.chooseJob(job);
-            document.getElementById('job-modal').classList.add('hidden');
-
-            const actions = document.getElementById('battle-actions');
-            actions.innerHTML = `
-                <button id="return-btn" class="btn-primary" style="grid-column: 1 / -1;">Continue</button>
-            `;
-
-            alert(`You are now a ${job}! New skills unlocked.`);
-        });
-    });
+    // Job selection di-handle langsung di Game.showJobModal()
 });
