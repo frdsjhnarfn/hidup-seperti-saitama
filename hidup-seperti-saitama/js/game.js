@@ -227,6 +227,27 @@ const Game = {
         };
     },
 
+        /* ---------- Fix item stat (migration for old data) ---------- */
+    fixItemStat(item) {
+        if (!item || !item.type) return item;
+        const def = WEAPON_TYPES[item.type];
+        if (!def) return item;
+
+        // Correct stat based on current WEAPON_TYPES
+        const correctStat = def.stat;
+        if (item.stat !== correctStat) {
+            console.log(`[MIGRATION] Fixing item ${item.name}: stat ${item.stat} → ${correctStat}`);
+            item.stat = correctStat;
+        }
+
+        // Also update allowedJobs to reflect current restrictions
+        if (def.allowedJobs && (!item.allowedJobs || JSON.stringify(item.allowedJobs) !== JSON.stringify(def.allowedJobs))) {
+            item.allowedJobs = def.allowedJobs;
+        }
+
+        return item;
+    },
+
     getTotalAttack() {
         const s = this.getScaling();
         let melee = this.hero.baseAtk;
@@ -391,6 +412,9 @@ const Game = {
         this.iron = data.iron || 0;
         this.equippedItem = data.equippedItem || null;
 
+        this.inventory = this.inventory.map(item => this.fixItemStat(item));
+        if (this.equippedItem) this.equippedItem = this.fixItemStat(this.equippedItem);
+
         if (this.hero.statPoints === undefined) this.hero.statPoints = (this.hero.level - 1) * 3;
         if (this.hero.bonusHp === undefined) this.hero.bonusHp = 0;
         if (this.hero.bonusMp === undefined) this.hero.bonusMp = 0;
@@ -554,6 +578,8 @@ const Game = {
     async equipItem(index) {
         const item = this.inventory[index];
         if (!item) return;
+
+        this.fixItemStat(item);
 
         if (!this.canEquip(item)) {
             alert(`Cannot equip ${item.type}! Restricted to: ${item.allowedJobs.join(', ')}.`);
