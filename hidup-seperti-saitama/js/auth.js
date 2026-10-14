@@ -107,7 +107,7 @@ const Auth = {
                 const saveData = await DB.loadGame(this.currentUser);
                 if (saveData && saveData.hero) {
                     await Game.load(saveData);
-                    showPage('page-profile');
+                    showPage('page-app');
                 } else {
                     showPage('page-hero-name');
                     document.getElementById('hero-name-input').value = '';
@@ -123,11 +123,24 @@ const Auth = {
     },
 
     initHeroName() {
+        let selectedGender = 'male';
+
+        // Gender selection
+        document.querySelectorAll('.gender-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.gender-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                selectedGender = opt.dataset.gender;
+                // Update preview
+                document.getElementById('hero-preview-img').src = `assets/novice_${selectedGender}.png`;
+            });
+        });
+
         document.getElementById('hero-name-confirm').addEventListener('click', async () => {
             const name = document.getElementById('hero-name-input').value.trim();
             if (!name) return alert('Please enter a hero name.');
-            await Game.createHero(name, Auth.currentUser, Auth.isGuest);
-            showPage('page-profile');
+            await Game.createHero(name, Auth.currentUser, Auth.isGuest, selectedGender);
+            showPage('page-app');
         });
         document.getElementById('hero-name-input').addEventListener('keydown', e => {
             if (e.key === 'Enter') document.getElementById('hero-name-confirm').click();

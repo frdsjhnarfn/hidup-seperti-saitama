@@ -16,7 +16,8 @@ const DISMANTLE_YIELD = { White: 2, Green: 4, Blue: 8, Purple: 12, Red: 16 };
 const EXP_TABLE = {
     1: 100, 2: 225, 3: 375, 4: 525, 5: 675, 6: 825, 7: 1075, 8: 1350, 9: 1675,
     10: 2000, 11: 2500, 12: 3125, 13: 3750, 14: 4450, 15: 5000, 16: 6325,
-    17: 7850, 18: 9200, 19: 10750, 20: 12500, 21: 14625, 22: 17500, 23: 20000, 24: 22500
+    17: 7850, 18: 9200, 19: 10750, 20: 12500, 21: 14625, 22: 17500, 23: 20000, 24: 22500,
+    25: 23250, 26: 25950, 27: 29725, 28: 32000, 29: 35000
 };
 
 /* ---------- WEAPON TYPES ---------- */
@@ -170,11 +171,32 @@ const Game = {
         return ATTR_SCALING[this.hero.job] || ATTR_SCALING.Novice;
     },
 
-    async createHero(name, username, isGuest) {
+        /* ---------- Hero Sprite ---------- */
+    getHeroSprite() {
+        if (!this.hero) return 'assets/novice_male.png';
+
+        const gender = this.hero.gender || 'male';
+        const job = this.hero.job || 'novice';
+
+        // Normalize job name → lowercase, no space
+        let jobKey = 'novice';
+        if (job === 'Warrior') jobKey = 'warrior';
+        else if (job === 'Archer') jobKey = 'archer';
+        else if (job === 'Mage') jobKey = 'mage';
+        // Second job: fall back ke first job sprite
+        else if (['Blade Master', 'Swordsman'].includes(job)) jobKey = 'warrior';
+        else if (['Marksman', 'Bow Master'].includes(job)) jobKey = 'archer';
+        else if (['Wizard', 'Sage'].includes(job)) jobKey = 'mage';
+
+        return `assets/${jobKey}_${gender}.png`;
+    },
+
+    async createHero(name, username, isGuest, gender = 'male') {
         this.username = username;
         this.isGuest = isGuest;
         this.hero = {
             name: name,
+            gender: gender,
             level: 1,
             exp: 0,
             hp: 10, maxHp: 10,
@@ -452,7 +474,15 @@ const Game = {
     render() {
         if (!this.hero) return;
 
-        document.getElementById('profile-hero-name').textContent = this.hero.name;
+        // Sidebar
+        document.getElementById('sidebar-hero-name').textContent = this.hero.name;
+        document.getElementById('sidebar-hero-class').textContent = this.hero.class;
+        // Character card
+        const sprite = this.getHeroSprite();
+        document.getElementById('char-sprite').src = sprite;
+        document.getElementById('char-name').textContent = this.hero.name;
+        document.getElementById('char-class').textContent = this.hero.class;
+        document.getElementById('char-gender').textContent = (this.hero.gender || 'male').toUpperCase();
         document.getElementById('stat-class').textContent = this.hero.class;
         document.getElementById('stat-level').textContent = this.hero.level;
         const expNeeded = EXP_TABLE[this.hero.level] || 'MAX';

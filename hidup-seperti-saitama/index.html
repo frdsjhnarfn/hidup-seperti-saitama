@@ -46,152 +46,192 @@
         </div>
     </div>
 
-    <!-- ============ HERO NAME INPUT ============ -->
+    <!-- ============ HERO CREATION (Name + Gender + Preview) ============ -->
     <div id="page-hero-name" class="page">
-        <div class="center-box">
-            <h2>Name Your Hero</h2>
-            <p class="subtitle">Every hero needs a name.</p>
+        <div class="center-box hero-create-box">
+            <h2>Create Your Hero</h2>
+            <p class="subtitle">Every hero needs a name and a path.</p>
+
+            <label class="form-label">Hero Name</label>
             <input type="text" id="hero-name-input" placeholder="Enter hero name" maxlength="16">
+
+            <label class="form-label">Gender</label>
+            <div class="gender-select" id="gender-select">
+                <div class="gender-option active" data-gender="male">
+                    <img src="assets/novice_male.png" alt="Male">
+                    <span>Male</span>
+                </div>
+                <div class="gender-option" data-gender="female">
+                    <img src="assets/novice_female.png" alt="Female">
+                    <span>Female</span>
+                </div>
+            </div>
+
+            <div class="hero-preview">
+                <img id="hero-preview-img" src="assets/novice_male.png" alt="Hero Preview">
+                <p class="preview-label">Novice</p>
+            </div>
+
             <button id="hero-name-confirm" class="btn-primary">Begin Journey</button>
         </div>
     </div>
 
-    <!-- ============ PAGE 1: PROFILE ============ -->
-    <div id="page-profile" class="page">
-        <header class="top-bar">
-            <h2 id="profile-hero-name">Hero</h2>
-            <button id="logout-btn" class="btn-danger">Logout</button>
-        </header>
-
-        <div class="profile-grid">
-            <section class="panel">
-                <h3>Hero Status</h3>
-                <div class="stat-row"><span>Class</span><span id="stat-class">Novice</span></div>
-                <div class="stat-row"><span>Level</span><span id="stat-level">1</span></div>
-                <div class="stat-row"><span>EXP</span><span id="stat-exp">0 / 100</span></div>
-                <div class="stat-row"><span>HP</span><span id="stat-hp">10 / 10</span></div>
-                <div class="stat-row"><span>MP</span><span id="stat-mp">10 / 10</span></div>
-                <div class="stat-row">
-                    <span>STR</span>
-                    <span class="stat-value-group">
-                        <span id="stat-str">0</span>
-                        <button class="stat-plus-btn" data-stat="str">+</button>
-                    </span>
+    <!-- ============ MAIN APP (Tab Layout) ============ -->
+    <div id="page-app" class="page">
+        <div class="app-layout">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h2 id="sidebar-hero-name">Hero</h2>
+                    <p id="sidebar-hero-class">Novice</p>
                 </div>
-                <div class="stat-row">
-                    <span>AGI</span>
-                    <span class="stat-value-group">
-                        <span id="stat-agi">0</span>
-                        <button class="stat-plus-btn" data-stat="agi">+</button>
-                    </span>
-                </div>
-                <div class="stat-row">
-                    <span>INT</span>
-                    <span class="stat-value-group">
-                        <span id="stat-int">0</span>
-                        <button class="stat-plus-btn" data-stat="int">+</button>
-                    </span>
-                </div>
-                <div class="stat-row highlight-points">
-                    <span>Stat Points</span>
-                    <span id="stat-points">0</span>
-                </div>
-                <div class="stat-row"><span>Attack</span><span id="stat-atk">3</span></div>
-                <div class="stat-row"><span>Attack Speed</span><span id="stat-spd">10</span></div>
-            </section>
+                <nav class="sidebar-nav">
+                    <button class="nav-tab active" data-tab-page="profile">Profile</button>
+                    <button class="nav-tab" data-tab-page="inventory">Inventory</button>
+                    <button class="nav-tab" data-tab-page="battle">Battle</button>
+                </nav>
+                <button id="logout-btn" class="btn-danger sidebar-logout">Logout</button>
+            </aside>
 
-            <section class="panel">
-                <h3>Equipment</h3>
-                <div id="equipped-item" class="equipped-slot">
-                    <p class="empty-slot">No equipment</p>
-                </div>
-                <button id="unequip-btn" class="btn-secondary">Unequip</button>
-            </section>
+            <!-- Main Content -->
+            <main class="main-content">
 
-            <section class="panel">
-                <h3>Skills</h3>
-                <div id="skills-list" class="skills-list"></div>
-            </section>
+                <!-- ====== TAB: PROFILE ====== -->
+                <div id="tab-profile" class="tab-page active">
+                    <h1 class="tab-title">Hero Profile</h1>
+                    <div class="profile-grid">
 
-            <section class="panel nav-panel">
-                <h3>Navigation</h3>
-                <button class="btn-primary nav-btn" data-nav="battle">⚔️ Battle</button>
-                <button class="btn-primary nav-btn" data-nav="inventory">🎒 Inventory</button>
-            </section>
-        </div>
-    </div>
+                        <!-- Character Card -->
+                        <section class="panel character-card">
+                            <img id="char-sprite" src="assets/novice_male.png" alt="Hero Sprite" class="char-sprite">
+                            <h3 id="char-name">Hero</h3>
+                            <p id="char-class" class="char-class">Novice</p>
+                            <p id="char-gender" class="char-gender">Male</p>
+                        </section>
 
-    <!-- ============ PAGE 2: BATTLE ============ -->
-    <div id="page-battle" class="page">
-        <header class="top-bar">
-            <button class="btn-secondary" data-nav="profile">← Back</button>
-            <h2>Battle</h2>
-            <div></div>
-        </header>
+                        <!-- Hero Stats -->
+                        <section class="panel">
+                            <h3>Hero Status</h3>
+                            <div class="stat-row"><span>Class</span><span id="stat-class">Novice</span></div>
+                            <div class="stat-row"><span>Level</span><span id="stat-level">1</span></div>
+                            <div class="stat-row"><span>EXP</span><span id="stat-exp">0 / 100</span></div>
+                            <div class="stat-row"><span>HP</span><span id="stat-hp">10 / 10</span></div>
+                            <div class="stat-row"><span>MP</span><span id="stat-mp">10 / 10</span></div>
+                            <div class="stat-row">
+                                <span>STR</span>
+                                <span class="stat-value-group">
+                                    <span id="stat-str">0</span>
+                                    <button class="stat-plus-btn" data-stat="str">+</button>
+                                </span>
+                            </div>
+                            <div class="stat-row">
+                                <span>AGI</span>
+                                <span class="stat-value-group">
+                                    <span id="stat-agi">0</span>
+                                    <button class="stat-plus-btn" data-stat="agi">+</button>
+                                </span>
+                            </div>
+                            <div class="stat-row">
+                                <span>INT</span>
+                                <span class="stat-value-group">
+                                    <span id="stat-int">0</span>
+                                    <button class="stat-plus-btn" data-stat="int">+</button>
+                                </span>
+                            </div>
+                            <div class="stat-row highlight-points">
+                                <span>Stat Points</span>
+                                <span id="stat-points">0</span>
+                            </div>
+                            <div class="stat-row"><span>Attack</span><span id="stat-atk">3</span></div>
+                            <div class="stat-row"><span>Attack Speed</span><span id="stat-spd">10</span></div>
+                        </section>
 
-        <div id="enemy-select" class="enemy-select">
-            <h3>Choose Your Enemy</h3>
-            <div class="enemy-list" id="enemy-list"></div>
-        </div>
+                        <!-- Equipment -->
+                        <section class="panel">
+                            <h3>Equipment</h3>
+                            <div id="equipped-item" class="equipped-slot">
+                                <p class="empty-slot">No equipment</p>
+                            </div>
+                            <button id="unequip-btn" class="btn-secondary">Unequip</button>
+                        </section>
 
-        <div id="battle-screen" class="battle-screen hidden">
-            <div class="battle-arena">
-                <div class="combatant hero-side">
-                    <h4 id="battle-hero-name">Hero</h4>
-                    <div class="hp-bar"><div id="battle-hero-hp-bar" class="hp-fill"></div></div>
-                    <p id="battle-hero-hp-text">10 / 10</p>
-                    <div class="mp-bar"><div id="battle-hero-mp-bar" class="mp-fill"></div></div>
-                    <p id="battle-hero-mp-text">10 / 10</p>
-                    <p id="battle-hero-status" class="status-indicator"></p>
+                        <!-- Skills -->
+                        <section class="panel">
+                            <h3>Skills</h3>
+                            <div id="skills-list" class="skills-list"></div>
+                        </section>
+                    </div>
                 </div>
 
-                <div class="vs">VS</div>
+                <!-- ====== TAB: INVENTORY ====== -->
+                <div id="tab-inventory" class="tab-page">
+                    <div class="tab-header">
+                        <h1 class="tab-title">Inventory</h1>
+                        <div class="iron-display">Iron: <span id="iron-count">0</span></div>
+                    </div>
+                    <div class="inventory-grid" id="inventory-grid"></div>
 
-                <div class="combatant enemy-side">
-                    <h4 id="battle-enemy-name">Chicken</h4>
-                    <div class="hp-bar"><div id="battle-enemy-hp-bar" class="hp-fill"></div></div>
-                    <p id="battle-enemy-hp-text">15 / 15</p>
-                    <p id="battle-enemy-status" class="status-indicator"></p>
+                    <div id="item-action-panel" class="item-action-panel hidden">
+                        <h3 id="selected-item-name">Item</h3>
+                        <p id="selected-item-stats"></p>
+                        <div class="item-actions">
+                            <button id="item-equip-btn" class="btn-primary">Equip</button>
+                            <button id="item-enhance-btn" class="btn-primary">Enhance</button>
+                            <button id="item-dismantle-btn" class="btn-secondary">Dismantle</button>
+                            <button id="item-discard-btn" class="btn-danger">Discard</button>
+                            <button id="item-close-btn" class="btn-secondary">Close</button>
+                        </div>
+                        <p id="enhance-cost" class="enhance-cost"></p>
+                    </div>
                 </div>
-            </div>
 
-            <div class="battle-log" id="battle-log"></div>
+                <!-- ====== TAB: BATTLE ====== -->
+                <div id="tab-battle" class="tab-page">
+                    <h1 class="tab-title">Battle</h1>
 
-            <div class="battle-actions" id="battle-actions">
-                <button id="action-attack" class="btn-primary">Attack</button>
-                <button id="action-skill" class="btn-primary">Skill</button>
-                <button id="action-leave" class="btn-danger">Leave Battle</button>
-            </div>
+                    <div id="enemy-select" class="enemy-select">
+                        <h3>Choose Your Enemy</h3>
+                        <div class="enemy-list" id="enemy-list"></div>
+                    </div>
 
-            <div id="skill-panel" class="skill-panel hidden">
-                <h3>Choose a Skill</h3>
-                <div id="skill-options" class="skill-options"></div>
-                <button id="skill-cancel-btn" class="btn-secondary">Cancel</button>
-            </div>
-        </div>
-    </div>
+                    <div id="battle-screen" class="battle-screen hidden">
+                        <div class="battle-arena">
+                            <div class="combatant hero-side">
+                                <h4 id="battle-hero-name">Hero</h4>
+                                <div class="hp-bar"><div id="battle-hero-hp-bar" class="hp-fill"></div></div>
+                                <p id="battle-hero-hp-text">10 / 10</p>
+                                <div class="mp-bar"><div id="battle-hero-mp-bar" class="mp-fill"></div></div>
+                                <p id="battle-hero-mp-text">10 / 10</p>
+                                <p id="battle-hero-status" class="status-indicator"></p>
+                            </div>
 
-    <!-- ============ PAGE 3: INVENTORY ============ -->
-    <div id="page-inventory" class="page">
-        <header class="top-bar">
-            <button class="btn-secondary" data-nav="profile">← Back</button>
-            <h2>Inventory</h2>
-            <div class="iron-display">Iron: <span id="iron-count">0</span></div>
-        </header>
+                            <div class="vs">VS</div>
 
-        <div class="inventory-grid" id="inventory-grid"></div>
+                            <div class="combatant enemy-side">
+                                <h4 id="battle-enemy-name">Chicken</h4>
+                                <div class="hp-bar"><div id="battle-enemy-hp-bar" class="hp-fill"></div></div>
+                                <p id="battle-enemy-hp-text">15 / 15</p>
+                                <p id="battle-enemy-status" class="status-indicator"></p>
+                            </div>
+                        </div>
 
-        <div id="item-action-panel" class="item-action-panel hidden">
-            <h3 id="selected-item-name">Item</h3>
-            <p id="selected-item-stats"></p>
-            <div class="item-actions">
-                <button id="item-equip-btn" class="btn-primary">Equip</button>
-                <button id="item-enhance-btn" class="btn-primary">Enhance</button>
-                <button id="item-dismantle-btn" class="btn-secondary">Dismantle</button>
-                <button id="item-discard-btn" class="btn-danger">Discard</button>
-                <button id="item-close-btn" class="btn-secondary">Close</button>
-            </div>
-            <p id="enhance-cost" class="enhance-cost"></p>
+                        <div class="battle-log" id="battle-log"></div>
+
+                        <div class="battle-actions" id="battle-actions">
+                            <button id="action-attack" class="btn-primary">Attack</button>
+                            <button id="action-skill" class="btn-primary">Skill</button>
+                            <button id="action-leave" class="btn-danger">Leave Battle</button>
+                        </div>
+
+                        <div id="skill-panel" class="skill-panel hidden">
+                            <h3>Choose a Skill</h3>
+                            <div id="skill-options" class="skill-options"></div>
+                            <button id="skill-cancel-btn" class="btn-secondary">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
     </div>
 

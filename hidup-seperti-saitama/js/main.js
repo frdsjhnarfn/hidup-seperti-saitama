@@ -1,5 +1,5 @@
 /* ============================================================
-   Main Entry Point & Navigation
+   Main Entry Point & Navigation (Tab Layout)
    ============================================================ */
 
 import { Auth } from './auth.js';
@@ -7,43 +7,52 @@ import { Game } from './game.js';
 
 function showPage(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(pageId).classList.add('active');
+    const el = document.getElementById(pageId);
+    if (el) el.classList.add('active');
 
-    if (pageId === 'page-profile') {
+    if (pageId === 'page-app') {
         Game.render();
-    } else if (pageId === 'page-battle') {
+    }
+}
+
+function showTab(tabName) {
+    document.querySelectorAll('.tab-page').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+    const tab = document.getElementById('tab-' + tabName);
+    if (tab) tab.classList.add('active');
+
+    const btn = document.querySelector(`.nav-tab[data-tab-page="${tabName}"]`);
+    if (btn) btn.classList.add('active');
+
+    // Refresh content per tab
+    if (tabName === 'profile') Game.render();
+    else if (tabName === 'inventory') Game.renderInventory();
+    else if (tabName === 'battle') {
         Game.renderEnemies();
         document.getElementById('enemy-select').classList.remove('hidden');
         document.getElementById('battle-screen').classList.add('hidden');
         document.getElementById('skill-panel').classList.add('hidden');
         Game.battle = null;
-    } else if (pageId === 'page-inventory') {
-        Game.renderInventory();
     }
 }
 
-// Expose showPage ke global untuk dipakai auth.js
+// Expose ke global
 window.showPage = showPage;
+window.showTab = showTab;
 
 document.addEventListener('DOMContentLoaded', () => {
     Auth.init();
     Auth.initHeroName();
 
-    // Stat allocation
-    document.querySelectorAll('.stat-plus-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            Game.allocateStat(btn.dataset.stat);
-        });
+    // Tab switching (sidebar)
+    document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.addEventListener('click', () => showTab(btn.dataset.tabPage));
     });
 
-    // Nav buttons
-    document.querySelectorAll('.nav-btn, [data-nav]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.nav;
-            if (target === 'battle') showPage('page-battle');
-            else if (target === 'inventory') showPage('page-inventory');
-            else if (target === 'profile') showPage('page-profile');
-        });
+    // Stat allocation
+    document.querySelectorAll('.stat-plus-btn').forEach(btn => {
+        btn.addEventListener('click', () => Game.allocateStat(btn.dataset.stat));
     });
 
     // Battle actions (event delegation)
@@ -52,15 +61,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!btn) return;
 
         switch (btn.id) {
-            case 'action-attack':
-                Game.heroAttack();
-                break;
-            case 'action-skill':
-                Game.openSkillPanel();
-                break;
-            case 'action-leave':
-                Game.leaveBattle();
-                break;
+            case 'action-attack': Game.heroAttack(); break;
+            case 'action-skill': Game.openSkillPanel(); break;
+            case 'action-leave': Game.leaveBattle(); break;
             case 'attack-again-btn':
             case 'retry-btn': {
                 const lastMonster = Game.battle?.monster;
@@ -70,9 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 break;
             }
-            case 'return-btn':
-                Game.exitBattle();
-                break;
+            case 'return-btn': Game.exitBattle(); break;
         }
     });
 
@@ -100,6 +101,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Unequip
     document.getElementById('unequip-btn').addEventListener('click', () => Game.unequipItem());
-
-    // Job selection di-handle langsung di Game.showJobModal()
 });
